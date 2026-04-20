@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tayce T.'s Cookbook — Paper Mario Recipe Checker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:       #0d1a0f;
+    --surface:  #152018;
+    --border:   #2a4a2e;
+    --green:    #52c45a;
+    --green-dim:#2a7a30;
+    --gold:     #f5c842;
+    --gold-dim: #a8882a;
+    --red:      #e84040;
+    --text:     #d8f0da;
+    --muted:    #6a9a6e;
+    --blue:     #5ab4f0;
+    --orange:   #f5903a;
+    --optional: #3a5a3e;
+    --ch1: #5ab4f0;
+    --ch4: #f5c842;
+    --ch5: #f5903a;
+    --ch6: #c05af0;
+    --ch7: #e84040;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    background-image:
+      radial-gradient(ellipse at 15% 15%, rgba(82,196,90,0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 85%, rgba(245,200,66,0.05) 0%, transparent 50%);
+  }
+
+  .container { max-width: 940px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+  .spoon-row { font-size: 1.6rem; margin-bottom: 0.75rem; animation: sway 4s ease-in-out infinite; display: inline-block; }
+  @keyframes sway { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+  h1 { font-family: 'Press Start 2P', monospace; font-size: clamp(0.85rem, 2.5vw, 1.3rem); color: var(--green); text-shadow: 3px 3px 0 #0a2a0c, 0 0 30px rgba(82,196,90,0.3); line-height: 1.7; margin-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); font-size: 0.95rem; font-weight: 600; }
+
+  /* Drop zone */
+  .drop-zone { border: 3px dashed var(--border); border-radius: 12px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); margin-bottom: 1.5rem; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--green); background: #1a2e1c; box-shadow: 0 0 30px rgba(82,196,90,0.12); }
+  .drop-zone.drag-over { transform: scale(1.01); }
+  .drop-icon { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
+  .drop-title { font-family: 'Press Start 2P', monospace; font-size: 0.65rem; color: var(--green); margin-bottom: 0.6rem; line-height: 1.8; }
+  .drop-sub { color: var(--muted); font-size: 0.85rem; }
+  .drop-sub code { background: #0a150b; border: 1px solid var(--border); padding: 0.15em 0.5em; border-radius: 4px; font-family: monospace; color: var(--blue); font-size: 0.8rem; }
+  #fileInput { display: none; }
+
+  #status { text-align: center; padding: 0.75rem; border-radius: 8px; font-weight: 700; font-size: 0.9rem; margin-bottom: 1.5rem; display: none; }
+  #status.loading { display: block; background: #1a2a3a; color: var(--blue); border: 1px solid var(--blue); }
+  #status.error   { display: block; background: #2a0a0a; color: var(--red); border: 1px solid var(--red); }
+
+  /* Progress */
+  #progressWrap { display: none; margin-bottom: 1.5rem; }
+  #progressWrap.visible { display: block; }
+  .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
+  .progress-label { font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: var(--green); }
+  .progress-count { font-size: 1.3rem; font-weight: 800; color: var(--green); }
+  .progress-count .denom { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  .progress-track { height: 18px; background: #060f07; border-radius: 9px; border: 2px solid var(--border); overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #1a7a20, var(--green), #a0f0a8); border-radius: 9px; transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1); position: relative; }
+  .progress-fill::after { content:''; position:absolute; top:3px; left:8px; right:8px; height:4px; background:rgba(255,255,255,0.25); border-radius:2px; }
+
+  /* Controls row */
+  .controls { display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .control-group { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .control-label { font-family: 'Press Start 2P', monospace; font-size: 0.45rem; color: var(--muted); align-self: center; white-space: nowrap; }
+  .ctrl-btn { background: var(--surface); border: 2px solid var(--border); color: var(--muted); border-radius: 8px; padding: 0.4rem 0.85rem; font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .ctrl-btn:hover { border-color: var(--green-dim); color: var(--text); }
+  .ctrl-btn.active { background: var(--green); border-color: var(--green); color: #0d1a0f; }
+  .ctrl-sep { width: 1px; background: var(--border); align-self: stretch; margin: 0 0.15rem; }
+
+  /* Recipe grid */
+  #results { display: none; }
+  #results.visible { display: block; }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
+    gap: 0.55rem;
+  }
+
+  .recipe-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: background 0.1s;
+  }
+  .recipe-card:hover { background: #1c2e1e; }
+  .recipe-card.done { border-color: var(--green-dim); }
+  .recipe-card.done .recipe-name { color: var(--text); }
+  .recipe-card.todo .recipe-name { color: var(--muted); }
+
+  .recipe-top { display: flex; align-items: center; gap: 0.6rem; }
+  .recipe-num { font-size: 0.68rem; color: var(--optional); font-weight: 700; min-width: 1.8em; text-align: right; flex-shrink: 0; }
+  .recipe-mark { font-size: 0.9rem; flex-shrink: 0; }
+  .recipe-card.done .recipe-mark { color: var(--green); }
+  .recipe-card.todo .recipe-mark { color: var(--red); }
+  .recipe-name { font-size: 0.88rem; font-weight: 700; flex: 1; }
+
+  .recipe-ingredients { font-size: 0.75rem; color: var(--optional); padding-left: 2.8rem; font-weight: 600; line-height: 1.4; }
+  .recipe-card.todo .recipe-ingredients { color: #2e4a32; }
+  .recipe-effect { font-size: 0.7rem; color: #2e4a32; padding-left: 2.8rem; font-style: italic; line-height: 1.3; }
+  .recipe-card.done .recipe-effect { color: #3a5a3e; }
+
+  /* Section dividers */
+  .section-divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0 0.3rem;
+    margin-top: 0.3rem;
+  }
+  .section-divider-label {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.5rem;
+    white-space: nowrap;
+    line-height: 1.8;
+  }
+  .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+  .section-divider-count { font-size: 0.75rem; font-weight: 700; color: var(--muted); white-space: nowrap; }
+
+  /* Chapter colors */
+  .ch-1 .section-divider-label { color: var(--ch1); }
+  .ch-4 .section-divider-label { color: var(--ch4); }
+  .ch-5 .section-divider-label { color: var(--ch5); }
+  .ch-6 .section-divider-label { color: var(--ch6); }
+  .ch-7 .section-divider-label { color: var(--ch7); }
+  .ch-1.recipe-card { border-left: 3px solid var(--ch1); }
+  .ch-4.recipe-card { border-left: 3px solid var(--ch4); }
+  .ch-5.recipe-card { border-left: 3px solid var(--ch5); }
+  .ch-6.recipe-card { border-left: 3px solid var(--ch6); }
+  .ch-7.recipe-card { border-left: 3px solid var(--ch7); }
+
+  /* Legend */
+  .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Instructions */
+  .instructions { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 2rem; font-size: 0.88rem; }
+  .instructions h3 { font-family: 'Press Start 2P', monospace; font-size: 0.55rem; color: var(--green); margin-bottom: 1rem; line-height: 1.8; }
+  .instructions ol { padding-left: 1.3rem; }
+  .instructions li { margin-bottom: 0.5rem; color: var(--muted); line-height: 1.5; }
+  .instructions li strong { color: var(--text); }
+  .instructions code { background: #0a150b; border: 1px solid var(--border); padding: 0.1em 0.4em; border-radius: 4px; font-family: monospace; color: var(--blue); font-size: 0.85em; }
+
+  #tooltip { display:none; position:fixed; background:#060f07; border:1px solid var(--border); color:var(--text); font-size:0.78rem; font-weight:600; font-family:'Nunito',sans-serif; padding:0.4em 0.75em; border-radius:6px; max-width:300px; z-index:9999; pointer-events:none; line-height:1.5; box-shadow:0 4px 16px rgba(0,0,0,0.7); white-space:pre-line; }
+
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+  footer a { color: var(--green-dim); text-decoration: none; }
+  footer a:hover { color: var(--green); }
+</style>
+</head>
+<body>
+<div id="tooltip"></div>
+<div class="container">
+
+  <header>
+    <div class="spoon-row">🍳</div>
+    <h1>Tayce T.'s Cookbook</h1>
+    <p class="subtitle">Paper Mario (N64) · Recipe Checker</p>
+  </header>
+
+  <div class="instructions">
+    <h3>How to use</h3>
+    <ol>
+      <li>In RetroArch with Paper Mario running and the save file you want to check loaded, open <strong>Quick Menu &rarr; Save State</strong> (or press your hotkey). You can do this even in RetroAchievements Hardcore Mode; you just cannot <em>load</em> states while Hardcore Mode is on.</li>
+      <li>Find the <code>.stateN</code> file in your <code>states/</code> folder (e.g. <code>Paper Mario.state1</code>) and upload it here. Save states only; <code>.srm</code> battery save files are not supported, since recipe data only exists in active memory, not in the save file itself.</li>
+      <li>Choose a view mode and filter to see your progress. <strong>Single / Two</strong> groups recipes by ingredient count. <strong>ID Order</strong> follows the game's internal item ID sequence. <strong>Chapter</strong> shows the earliest chapter each recipe becomes cookable, with optimized ingredient routes.</li>
+    </ol>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <span class="drop-icon">🥘</span>
+    <div class="drop-title">Drop save state here<br>or click to browse</div>
+    <p class="drop-sub">Accepts <code>.stateN</code> files from MupenPlusNext on RetroArch</p>
+    <input type="file" id="fileInput">
+  </div>
+
+  <div id="status"></div>
+
+  <div id="progressWrap">
+    <div class="progress-header">
+      <span class="progress-label">Cooking Nightmare Progress</span>
+      <span class="progress-count"><span id="cookedCount">0</span><span class="denom"> / 50</span></span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="controls" id="controlsRow" style="display:none">
+    <span class="control-label">VIEW</span>
+    <div class="control-group">
+      <button class="ctrl-btn active" data-mode="csv">Single / Two</button>
+      <button class="ctrl-btn" data-mode="id">ID Order</button>
+      <button class="ctrl-btn" data-mode="chapter">Chapter</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <span class="control-label">FILTER</span>
+    <div class="control-group">
+      <button class="ctrl-btn active" data-filter="all">All</button>
+      <button class="ctrl-btn" data-filter="missing">Not cooked</button>
+      <button class="ctrl-btn" data-filter="done">Cooked</button>
+    </div>
+  </div>
+
+  <div id="legend" style="display:none" class="legend">
+    <span class="legend-item"><span style="color:var(--green)">✓</span> <span style="color:var(--text)">Cooked</span></span>
+    <span class="legend-item"><span style="color:var(--red)">✗</span> <span>Not yet cooked</span></span>
+    <span id="chapterLegend" style="display:none">
+      &nbsp;·&nbsp;
+      <span class="legend-item"><span class="legend-dot" style="background:var(--ch1)"></span> Ch. 1</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--ch4)"></span> Ch. 4</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--ch5)"></span> Ch. 5</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--ch6)"></span> Ch. 6</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--ch7)"></span> Ch. 7</span>
+    </span>
+  </div>
+
+  <div id="results">
+    <div class="recipe-grid" id="recipeGrid"></div>
+  </div>
+
+  <footer>
+    <p>Compatible with the <a href="https://retroachievements.org/achievement/79593" target="_blank">Cooking Nightmare</a> achievement &middot; <a href="https://github.com/josephrooks/recipedia" target="_blank">Source</a> &middot; <a href="https://github.com/josephrooks/recipedia#credits" target="_blank">Credits</a></p>
+  </footer>
+
+</div>
+
+<script>
+const RDRAM_BASE = 0x1CC;
+
+// ── Recipe data ─────────────────────────────────────────────────────────────
+// [addr, bit, name, csvIngredients, effect, idOrder, chapter, chapterIngredients]
+const RECIPES = [
+  // Single ingredient (CSV order)
+  [0xdbc98,7,'Cake','Cake Mix','Restores 15 FP',18,4,'Cake Mix'],
+  [0xdbc9c,2,'Dizzy Dial','Strange Leaf','Makes weak enemies dizzy',44,4,'Strange Leaf + Volt Shroom'],
+  [0xdbc99,7,'Fried Egg','Egg','Restores 10 HP',25,1,'Egg'],
+  [0xdbc97,4,'Fried Shroom','Mushroom','Restores 6 HP and 2 FP',7,4,'Dried Shroom + Mushroom'],
+  [0xdbc99,1,'Koopa Tea','Koopa Leaf','Restores 7 FP',19,1,'Koopa Leaf'],
+  [0xdbc9b,4,'Nutty Cake','Goomnut','Restores 10 FP',38,1,'Goomnut'],
+  [0xdbc9b,3,'Potato Salad','Iced Potato','Restores 10 HP',37,7,'Iced Potato'],
+  [0xdbc99,5,'Spaghetti','Dried Pasta','Restores 6 HP and 4 FP',23,4,'Dried Pasta'],
+  [0xdbc98,5,'Special Shake','Melon','Restores 20 FP',16,5,'Melon'],
+  [0xdbc96,6,'Spicy Soup','Fire Flower','Restores 4 HP and 4 FP',1,1,'Fire Flower'],
+  [0xdbc9c,3,'Super Soda','Honey Syrup','Restores 5 FP and cures poison/shrinking',45,1,'Honey Syrup'],
+  [0xdbc9c,1,'Tasty Tonic','Lime or Lemon','Cures poison and shrinking',43,1,'Lime or Lemon'],
+  // Two ingredients (CSV order)
+  [0xdbc96,7,'Apple Pie','Apple + Cake Mix','Restores 5 HP and 15 FP',2,4,'Cake Mix + Apple'],
+  [0xdbc98,6,'Big Cookie','Egg + Cake Mix','Restores 20 FP',17,4,'Cake Mix + Goomnut'],
+  [0xdbc98,3,'Bland Meal','Koopa Leaf + Goomnut','Restores 10 HP and 10 FP',14,4,'Koopa Leaf + Goomnut'],
+  [0xdbc9b,6,'Boiled Egg','Egg + Strange Leaf','Restores 8 HP and 8 FP',40,4,'Egg + Strange Leaf'],
+  [0xdbc9a,5,'Coco Pop','Coconut + Cake Mix','Restores 3 HP and 15 FP',31,5,'Cake Mix + Coconut'],
+  [0xdbc98,4,'Deluxe Feast','Whacka\'s Bump + Strange Leaf','Restores 40 HP and 40 FP',15,4,'Strange Leaf + Whacka\'s Bump'],
+  [0xdbc99,6,'Egg Missile','Fire Flower + Egg','Deals 6 HP damage to one enemy',24,4,'Egg + Fire Flower'],
+  [0xdbc9a,2,'Electro Pop','Volt Shroom + Cake Mix','Restores 15 FP; electrifies Mario',28,4,'Cake Mix + Volt Shroom'],
+  [0xdbc9d,1,'Fire Flower','Dried Fruit + Strange Leaf','Deals 3 HP damage to all enemies',50,4,'Dried Fruit + Strange Leaf'],
+  [0xdbc9a,3,'Fire Pop','Cake Mix + Fire Flower','Deals 1 HP to Mario; restores 20 FP',29,4,'Cake Mix + Fire Flower'],
+  [0xdbc9b,2,'Frozen Fries','Fire Flower + Iced Potato','Restores 15 HP',36,7,'Iced Potato + Fire Flower'],
+  [0xdbc98,2,'Healthy Juice','Special Shake + Dried Shroom','Restores 40 FP',13,5,'Special Shake + Dried Shroom'],
+  [0xdbc9a,1,'Honey Candy','Cake Mix + Honey Syrup','Restores 20 FP',27,4,'Cake Mix + Honey Syrup'],
+  [0xdbc9a,0,'Honey Shroom','Mushroom + Honey Syrup','Restores 5 HP and 5 FP',26,4,'Honey Syrup + Mushroom'],
+  [0xdbc99,2,'Honey Super','Super Shroom + Honey Syrup','Restores 10 HP and 5 FP',20,4,'Honey Syrup + Volt Shroom'],
+  [0xdbc97,0,'Honey Ultra','Ultra Shroom + Honey Syrup','Restores 50 HP and 5 FP',3,4,'Honey Syrup + Ultra Shroom'],
+  [0xdbc97,7,'Hot Shroom','Dried Shroom + Super Shroom','Restores 15 HP and 5 FP',10,1,'Volt Shroom'],
+  [0xdbc9a,7,'Jelly Pop','Cake Mix + Jammin\' Jelly','Restores 64 FP',33,6,'Cake Mix + Jammin\' Jelly'],
+  [0xdbc9c,0,'Jelly Shroom','Mushroom + Jammin\' Jelly','Restores 5 HP and 50 FP',42,6,'Jammin\' Jelly + Mushroom'],
+  [0xdbc99,4,'Jelly Super','Super Shroom + Jammin\' Jelly','Restores 10 HP and 50 FP',22,6,'Jammin\' Jelly + Volt Shroom'],
+  [0xdbc97,2,'Jelly Ultra','Ultra Shroom + Jammin\' Jelly','Restores 50 HP and 50 FP',5,7,'Jammin\' Jelly + Ultra Shroom'],
+  [0xdbc9b,1,'Kooky Cookie','Cake Mix + Koopa Leaf','Restores 15 FP; electrified/invisible/sleepy',35,4,'Cake Mix + Koopa Leaf'],
+  [0xdbc97,3,'Koopasta','Koopa Leaf + Dried Pasta','Restores 7 HP and 7 FP',6,4,'Koopa Leaf + Dried Pasta'],
+  [0xdbc9a,6,'Lemon Candy','Lemon + Cake Mix','Restores 5 HP and 15 FP',32,4,'Cake Mix + Lemon'],
+  [0xdbc9c,5,'Life Shroom','Super Shroom + Koopa Leaf','Auto-restores 10 HP on KO',46,4,'Volt Shroom + Goomnut'],
+  [0xdbc9a,4,'Lime Candy','Lime + Cake Mix','Restores 20 FP',30,4,'Cake Mix + Lime'],
+  [0xdbc9b,5,'Maple Shroom','Mushroom + Maple Syrup','Restores 5 HP and 10 FP',39,4,'Maple Syrup + Mushroom'],
+  [0xdbc99,3,'Maple Super','Super Shroom + Maple Syrup','Restores 10 HP and 10 FP',21,4,'Maple Syrup + Volt Shroom'],
+  [0xdbc97,1,'Maple Ultra','Ultra Shroom + Maple Syrup','Restores 50 HP and 10 FP',4,7,'Maple Syrup + Ultra Shroom'],
+  [0xdbc97,5,'Shroom Cake','Mushroom + Cake Mix','Restores 10 HP and 10 FP',8,4,'Cake Mix + Mushroom'],
+  [0xdbc97,6,'Shroom Steak','Life Shroom + Mushroom','Restores 30 HP and 10 FP',9,4,'Life Shroom + Mushroom'],
+  [0xdbc9c,7,'Sleepy Sheep','Strange Leaf + Berry (any color)','Makes weak enemies sleep',47,6,'Red/Yellow/Blue Berry + Strange Leaf'],
+  [0xdbc9b,0,'Strange Cake','Strange Leaf + Cake Mix','Electrified/invisible/sleepy effect',34,4,'Cake Mix + Strange Leaf'],
+  [0xdbc98,0,'Sweet Shroom','Cake Mix + Life Shroom','Restores 30 HP and 20 FP',11,4,'Cake Mix + Life Shroom'],
+  [0xdbc9d,0,'Thunder Rage','Dried Fruit + Volt Shroom','Deals 5 HP damage to all enemies',49,4,'Dried Fruit + Volt Shroom'],
+  [0xdbc9c,6,'Volt Shroom','Mushroom + Koopa Leaf','Electrifies Mario',48,4,'Koopa Leaf + Mushroom'],
+  [0xdbc9b,7,'Yoshi Cookie','Melon + Cake Mix','Restores 15 HP and 15 FP',41,5,'Cake Mix + Melon'],
+  [0xdbc98,1,'Yummy Meal','Dried Fruit + Dried Pasta','Restores 20 HP and 20 FP',12,4,'Dried Fruit + Dried Pasta'],
+];
+// Indices into each recipe tuple
+const I_ADDR=0, I_BIT=1, I_NAME=2, I_CSV_ING=3, I_EFFECT=4, I_ID=5, I_CH=6, I_CH_ING=7;
+
+// ── Decompression ──────────────────────────────────────────────────────────
+function decompressState(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const magic = String.fromCharCode(...bytes.slice(0,8));
+  if (!magic.startsWith('#RZIPv')) throw new Error('Not a recognized save state. Upload a .stateN file from RetroArch MupenPlusNext.');
+  const view = new DataView(buffer);
+  const chunks = [];
+  let pos = 0x14;
+  while (pos < bytes.length - 4) {
+    const compLen = view.getUint32(pos, true);
+    pos += 4;
+    if (compLen === 0 || compLen > 0x400000 || pos + compLen > bytes.length) break;
+    try { chunks.push(pako.inflate(bytes.slice(pos, pos + compLen))); } catch(e) { break; }
+    pos += compLen;
+  }
+  if (!chunks.length) throw new Error('Could not decompress the save state.');
+  const total = chunks.reduce((n,c) => n+c.length, 0);
+  const full = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { full.set(c, off); off += c.length; }
+  return full;
+}
+
+function rdram(full, addr) { return full[RDRAM_BASE + addr]; }
+function readU16LE(full, addr) { return rdram(full, addr) | (rdram(full, addr+1) << 8); }
+
+// ── Analysis ───────────────────────────────────────────────────────────────
+function analyse(full) {
+  const loaded = readU16LE(full, 0xa094a);
+  if (loaded !== 0x0001) throw new Error(`Not an active Paper Mario game session (flag=0x${loaded.toString(16)}). Save the state while in-game.`);
+  let cooked = 0;
+  const results = RECIPES.map(r => {
+    const done = !!(rdram(full, r[I_ADDR]) & (1 << r[I_BIT]));
+    if (done) cooked++;
+    return { r, done };
+  });
+  return { results, cooked };
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let lastData = null;
+let currentMode = 'csv';
+let currentFilter = 'all';
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderProgress({ cooked }) {
+  document.getElementById('cookedCount').textContent = cooked;
+  document.getElementById('progressFill').style.width = `${(cooked/50*100).toFixed(1)}%`;
+  document.getElementById('progressWrap').classList.add('visible');
+}
+
+function makeCard(r, done, displayNum, ingText) {
+  const card = document.createElement('div');
+  const chClass = currentMode === 'chapter' ? ` ch-${r[I_CH]}` : '';
+  card.className = `recipe-card ${done ? 'done' : 'todo'}${chClass}`;
+  card.innerHTML = `
+    <div class="recipe-top">
+      <span class="recipe-num">${displayNum}.</span>
+      <span class="recipe-mark">${done ? '✓' : '✗'}</span>
+      <span class="recipe-name">${r[I_NAME]}</span>
+    </div>
+    <div class="recipe-ingredients">${ingText}</div>
+    <div class="recipe-effect">${r[I_EFFECT]}</div>`;
+  return card;
+}
+
+function addDivider(grid, label, colorClass, countText) {
+  const div = document.createElement('div');
+  div.className = `section-divider ${colorClass}`;
+  div.innerHTML = `<span class="section-divider-label">${label}</span><span class="section-divider-line"></span><span class="section-divider-count">${countText}</span>`;
+  grid.appendChild(div);
+}
+
+function renderRecipes({ results }, mode, filter) {
+  const grid = document.getElementById('recipeGrid');
+  grid.innerHTML = '';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('legend').style.display = 'flex';
+  document.getElementById('chapterLegend').style.display = mode === 'chapter' ? 'contents' : 'none';
+
+  if (mode === 'csv') {
+    renderCSV(grid, results, filter);
+  } else if (mode === 'id') {
+    renderID(grid, results, filter);
+  } else {
+    renderChapter(grid, results, filter);
+  }
+}
+
+function renderCSV(grid, results, filter) {
+  const single = results.slice(0, 12);
+  const two = results.slice(12);
+
+  let singleVisible = single.filter(x => filter==='all' || (filter==='done'&&x.done) || (filter==='missing'&&!x.done));
+  let twoVisible = two.filter(x => filter==='all' || (filter==='done'&&x.done) || (filter==='missing'&&!x.done));
+
+  if (singleVisible.length) {
+    addDivider(grid, 'Single Ingredient', '', `${singleVisible.length} recipe${singleVisible.length!==1?'s':''}`);
+    singleVisible.forEach(({r, done}, i) => grid.appendChild(makeCard(r, done, results.indexOf(results.find(x=>x.r===r))+1, r[I_CSV_ING])));
+  }
+  if (twoVisible.length) {
+    addDivider(grid, 'Two Ingredients', '', `${twoVisible.length} recipe${twoVisible.length!==1?'s':''}`);
+    twoVisible.forEach(({r, done}) => grid.appendChild(makeCard(r, done, results.indexOf(results.find(x=>x.r===r))+1, r[I_CSV_ING])));
+  }
+}
+
+function renderID(grid, results, filter) {
+  const sorted = [...results].sort((a,b) => a.r[I_ID] - b.r[I_ID]);
+  const visible = sorted.filter(x => filter==='all' || (filter==='done'&&x.done) || (filter==='missing'&&!x.done));
+  visible.forEach(({r, done}) => grid.appendChild(makeCard(r, done, r[I_ID], r[I_CSV_ING])));
+}
+
+function renderChapter(grid, results, filter) {
+  const chapters = [
+    {ch:1, label:'Chapter 1', colorClass:'ch-1', cumulative:'7 / 50'},
+    {ch:4, label:'Chapter 4', colorClass:'ch-4', cumulative:'38 / 50'},
+    {ch:5, label:'Chapter 5', colorClass:'ch-5', cumulative:'42 / 50'},
+    {ch:6, label:'Chapter 6', colorClass:'ch-6', cumulative:'46 / 50'},
+    {ch:7, label:'Chapter 7', colorClass:'ch-7', cumulative:'50 / 50'},
+  ];
+
+  // Chapter mode numbering: sequential 1-50 in chapter order
+  const chapterOrder = [];
+  for (const {ch} of chapters) {
+    results.filter(x => x.r[I_CH] === ch).forEach(x => chapterOrder.push(x));
+  }
+
+  for (const {ch, label, colorClass, cumulative} of chapters) {
+    const group = results.filter(x => x.r[I_CH] === ch);
+    const visible = group.filter(x => filter==='all' || (filter==='done'&&x.done) || (filter==='missing'&&!x.done));
+    if (!visible.length && filter !== 'all') continue;
+
+    const cookedInGroup = group.filter(x=>x.done).length;
+    const divLabel = `${label}  (${cookedInGroup}/${group.length} done)`;
+    addDivider(grid, divLabel, colorClass, `cumulative: ${cumulative}`);
+    visible.forEach(({r, done}) => {
+      const chIdx = chapterOrder.indexOf(chapterOrder.find(x=>x.r===r)) + 1;
+      grid.appendChild(makeCard(r, done, chIdx, r[I_CH_ING]));
+    });
+  }
+}
+
+// ── File handling ──────────────────────────────────────────────────────────
+async function processFile(file) {
+  const status = document.getElementById('status');
+  status.className = 'loading';
+  status.textContent = `Reading ${file.name}...`;
+  status.style.display = 'block';
+  try {
+    const full = decompressState(await file.arrayBuffer());
+    lastData = analyse(full);
+    status.style.display = 'none';
+    renderProgress(lastData);
+    document.getElementById('controlsRow').style.display = 'flex';
+    renderRecipes(lastData, currentMode, currentFilter);
+  } catch(e) {
+    status.className = 'error';
+    status.textContent = '⚠ ' + e.message;
+    status.style.display = 'block';
+  }
+}
+
+const dropZone  = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+
+// ── Controls ───────────────────────────────────────────────────────────────
+document.getElementById('controlsRow').addEventListener('click', e => {
+  const btn = e.target.closest('.ctrl-btn');
+  if (!btn || !lastData) return;
+
+  if (btn.dataset.mode !== undefined) {
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+  } else if (btn.dataset.filter !== undefined) {
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+  }
+  renderRecipes(lastData, currentMode, currentFilter);
+});
+
+// ── Tooltip ────────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) return;
+  tooltip.textContent = el.getAttribute('data-tip');
+  tooltip.style.display = 'block';
+  positionTooltip(e);
+});
+document.addEventListener('mousemove', e => { if (tooltip.style.display==='block') positionTooltip(e); });
+document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]')) tooltip.style.display='none'; });
+function positionTooltip(e) {
+  const pad=12, tw=tooltip.offsetWidth, th=tooltip.offsetHeight;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if (x+tw+pad>window.innerWidth)  x=e.clientX-tw-pad;
+  if (y+th+pad>window.innerHeight) y=e.clientY-th-pad;
+  tooltip.style.left=x+'px'; tooltip.style.top=y+'px';
+}
+</script>
+</body>
+</html>

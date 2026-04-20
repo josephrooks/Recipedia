@@ -1,0 +1,15 @@
+verified personally w save states:
+
+state3	Had only done recipes for Koopa Koot
+state4	Dizzy Dial
+state5	Super Soda
+state6 	Volt Shroom
+state7 	Thunder Rage
+state8	Tasty Tonic
+state9	Strange Cake
+state10	Life Shroom 
+state11	Fire Flower
+state12	Sleepy Sheep
+state13	n/a
+state14	Cake
+state15	Fried Egg
