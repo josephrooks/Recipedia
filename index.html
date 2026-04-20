@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Nightmare of Cooking — Paper Mario Recipe Checker</title>
+<title>nightmare of cooking — Paper Mario Recipe Checker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:wght@400;600;700&display=swap');
@@ -42,7 +42,9 @@
   header { text-align: center; margin-bottom: 2.5rem; }
   .spoon-row { font-size: 1.6rem; margin-bottom: 0.75rem; animation: sway 4s ease-in-out infinite; display: inline-block; }
   @keyframes sway { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-  h1 { font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 4vw, 2.8rem); color: #9b0000; line-height: 1.2; margin-bottom: 0.5rem; }
+  h1 { font-family: 'Playfair Display', serif; color: #9b0000; line-height: 1.1; margin-bottom: 0.5rem; }
+  h1 .title-main { display: block; font-size: clamp(2.8rem, 8vw, 5rem); font-weight: 700; letter-spacing: -0.01em; }
+  h1 .title-sub  { display: block; font-size: clamp(1.1rem, 3vw, 1.9rem); font-weight: 400; font-style: italic; letter-spacing: 0.04em; margin-top: 0.1em; }
   .subtitle { color: var(--muted); font-size: 0.95rem; font-weight: 600; font-style: italic; letter-spacing: 0.03em; }
 
   /* Drop zone */
@@ -167,8 +169,8 @@
 <div class="container">
 
   <header>
-    <div class="spoon-row">🍳</div>
-    <h1>The Nightmare of Cooking</h1>
+    <div class="spoon-row">🍄</div>
+    <h1><span class="title-main">nightmare</span><span class="title-sub">of cooking</span></h1>
     <p class="subtitle">Paper Mario (N64) · Recipe Checker</p>
   </header>
 
@@ -182,7 +184,7 @@
   </div>
 
   <div class="drop-zone" id="dropZone">
-    <span class="drop-icon">🥘</span>
+    <span class="drop-icon">🍴</span>
     <div class="drop-title">Drop save state here<br>or click to browse</div>
     <p class="drop-sub">Accepts <code>.stateN</code> files only; <code>.srm</code> battery save files are not supported.</p>
     <input type="file" id="fileInput">
