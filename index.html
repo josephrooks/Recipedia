@@ -65,7 +65,7 @@
   #progressWrap { display: none; margin-bottom: 1.5rem; }
   #progressWrap.visible { display: block; }
   .progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; }
-  .progress-label { font-family: 'Press Start 2P', monospace; font-size: 0.6rem; color: var(--green); }
+  .progress-label { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--green); }
   .progress-count { font-size: 1.3rem; font-weight: 800; color: var(--green); }
   .progress-count .denom { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
   .progress-track { height: 18px; background: #d8cfc0; border-radius: 9px; border: 2px solid var(--border); overflow: hidden; }
@@ -157,7 +157,7 @@
   .instructions li strong { color: var(--text); }
   .instructions code { background: #e0d8c8; border: 1px solid var(--border); padding: 0.1em 0.4em; border-radius: 4px; font-family: monospace; color: var(--blue); font-size: 0.85em; }
 
-  #tooltip { display:none; position:fixed; background:#1a1208; border:1px solid var(--border); color:var(--text); font-size:0.78rem; font-weight:600; font-family:'Nunito',sans-serif; padding:0.4em 0.75em; border-radius:6px; max-width:300px; z-index:9999; pointer-events:none; line-height:1.5; box-shadow:0 4px 16px rgba(0,0,0,0.7); white-space:pre-line; }
+  #tooltip { display:none; position:fixed; background:#1a1208; border:1px solid var(--border); color:#f5f0e8; font-size:0.78rem; font-weight:600; font-family:'Source Serif 4',serif; padding:0.4em 0.75em; border-radius:4px; max-width:300px; z-index:9999; pointer-events:none; line-height:1.5; box-shadow:0 4px 16px rgba(0,0,0,0.3); white-space:pre-line; }
 
   footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
   footer a { color: var(--green-dim); text-decoration: none; }
@@ -223,8 +223,6 @@
   <div id="legend" style="display:none" class="legend">
     <span class="legend-item"><span style="color:var(--green)">✓</span> <span style="color:var(--text)">Cooked</span></span>
     <span class="legend-item"><span style="color:var(--red)">✗</span> <span>Not yet cooked</span></span>
-  Ch. 1</span>
-    </span>
   </div>
 
   <div id="results">
@@ -356,15 +354,18 @@ function makeCard(r, done, displayNum, ingText) {
   card.className = `recipe-card ${done ? 'done' : 'todo'}`;
   const alts = r[I_ALTS] || [];
   const altLabel = alts.length ? ` <span class="alt-count">(+${alts.length} alt${alts.length>1?'s':''})</span>` : '';
-  const altTip = alts.length ? alts.join('\n') : '';
   card.innerHTML = `
     <div class="recipe-top">
       <span class="recipe-num">${displayNum}.</span>
       <span class="recipe-mark">${done ? '✓' : '✗'}</span>
       <span class="recipe-name">${r[I_NAME]}</span>
     </div>
-    <div class="recipe-ingredients"${altTip ? ` data-tip="Also: ${altTip.replace(/"/g,'&quot;')}"` : ''}>${ingText}${altLabel}</div>
+    <div class="recipe-ingredients">${ingText}${altLabel}</div>
     <div class="recipe-effect">${r[I_EFFECT]}</div>`;
+  if (alts.length) {
+    const ingDiv = card.querySelector('.recipe-ingredients');
+    ingDiv.setAttribute('data-tip', 'Also:\n' + alts.join('\n'));
+  }
   return card;
 }
 
