@@ -91,6 +91,38 @@
     gap: 0.55rem;
   }
 
+  /* Checkbox */
+  .recipe-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--border);
+    border-radius: 2px;
+    background: var(--bg);
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+  }
+  .recipe-checkbox:checked { background: var(--green); border-color: var(--green); }
+  .recipe-checkbox:checked::after { content: '✓'; position: absolute; top: -3px; left: 1px; font-size: 0.65rem; color: #f5f0e8; font-weight: 900; }
+
+  /* Shopping list */
+  .shopping-grid { display: flex; flex-direction: column; gap: 0.5rem; }
+  .shopping-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green-dim);
+    border-radius: 2px;
+    padding: 0.6rem 0.9rem;
+  }
+  .shopping-item-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 0.95rem; color: var(--text); margin-bottom: 0.2rem; }
+  .shopping-item-location { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+  .shopping-item-recipes { font-size: 0.72rem; color: var(--optional); font-style: italic; margin-top: 0.2rem; }
+  .shopping-empty { text-align: center; padding: 3rem; color: var(--muted); font-style: italic; font-size: 0.9rem; }
+
   .recipe-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -107,12 +139,12 @@
   .recipe-card.done .recipe-name { color: var(--text); }
   .recipe-card.todo .recipe-name { color: var(--muted); }
 
-  .recipe-top { display: flex; align-items: center; gap: 0.6rem; }
+  .recipe-top { display: flex; align-items: center; gap: 0.6rem; justify-content: space-between; }
   .recipe-num { font-size: 0.68rem; color: var(--optional); font-weight: 700; min-width: 1.8em; text-align: right; flex-shrink: 0; }
   .recipe-mark { font-size: 0.9rem; flex-shrink: 0; }
   .recipe-card.done .recipe-mark { color: var(--green); }
   .recipe-card.todo .recipe-mark { color: var(--red); }
-  .recipe-name { font-size: 0.88rem; font-weight: 700; flex: 1; font-family: 'Playfair Display', serif; }
+  .recipe-name { font-size: 0.88rem; font-weight: 700; flex: 1; font-family: 'Playfair Display', serif; min-width: 0; }
 
   .recipe-ingredients { font-size: 0.75rem; color: var(--muted); padding-left: 2.8rem; font-weight: 600; line-height: 1.4; }
   .alt-count {
@@ -214,6 +246,8 @@
       <button class="ctrl-btn" data-mode="id">ID Order</button>
     </div>
     <div class="ctrl-sep"></div>
+    <button class="ctrl-btn" data-mode="shopping">Shopping List</button>
+    <div class="ctrl-sep"></div>
     <span class="control-label">FILTER</span>
     <div class="control-group">
       <button class="ctrl-btn active" data-filter="all">All</button>
@@ -242,6 +276,48 @@
 const RDRAM_BASE = 0x1CC;
 
 // ── Recipe data ─────────────────────────────────────────────────────────────
+
+const INGREDIENT_LOCATIONS = {
+  'Apple':         'Dry Dry Desert oasis · Jade Jungle (hit trees)',
+  'Blue Berry':    'Flower Fields',
+  'Bubble Berry':  'Flower Fields',
+  'Cake Mix':      "Shy Guy's Toybox (defeat the Shy Guy carrying it)",
+  'Coconut':       'Jade Jungle (hit palm trees) · Yoshi Village shop',
+  'Dried Fruit':   'Dry Dry Desert (Pokey drop · found in upper-right areas)',
+  'Dried Pasta':   'Dry Dry Outpost shop (3 coins)',
+  'Dried Shroom':  'Most shops · Toad Town Shroom Grocery',
+  'Egg':           'Jade Jungle (hit bird nests in trees)',
+  'Fire Flower':   'Toad Town Shroom Grocery (10 coins) · Koopa Village shop (8 coins) · Yoshi Village shop (5 coins)',
+  'Goomnut':       'Goomba Village (hammer the tree in the main square)',
+  'Honey Syrup':   'Toad Town Shroom Grocery (10 coins) · Koopa Village shop (8 coins) · Most shops',
+  'Iced Potato':   'Shiver City area (hit ice blocks) · Shiver City shop',
+  "Jammin' Jelly": "Mt. Lavalava entrance (behind tree) · Flower Fields (behind Lily's pond) · Crystal Palace · Bowser's Castle · Amazy Dayzee drop · Silver Lil' Oink (Toad Town farm)",
+  'Koopa Leaf':    'Koopa Village (shake the bushes near the save block, respawns)',
+  'Lemon':         'Dry Dry Desert oasis (hit the lemon tree)',
+  'Life Shroom':   "Boo's Mansion shop (50 coins) · Shiver City shop (40 coins) · Star Haven shop (25 coins)",
+  'Lime':          'Dry Dry Desert oasis (hit the lime tree)',
+  'Maple Syrup':   "Boo's Mansion shop · Yoshi Village shop · Most shops from Chapter 3 onward",
+  'Melon':         'Jade Jungle (hit trees) · Yoshi Village (gift after rescue)',
+  'Mushroom':      'Toad Town Shroom Grocery (5 coins) · Koopa Village shop (4 coins) · Most shops',
+  'Red Berry':     'Flower Fields',
+  'Special Shake': 'Cook a Melon alone at Tayce T.',
+  'Stinky Herb':   'Flower Fields (walk past the wall flowers — occasionally drops)',
+  'Strange Leaf':  "Forever Forest (bush outside Boo's Mansion near Gusty Gulch exit — does not respawn)",
+  'Super Shroom':  "Toad Town Harry's Shop (20 coins) · Boo's Mansion shop · Most shops from Chapter 3",
+  'Ultra Shroom':  "Dry Dry Desert (Area C1 — hit the lower block 100 times to reveal hidden block) · Shy Guy's Toybox · Bowser's Castle",
+  'Volt Shroom':   "Koopa Village shop (15 coins) · Toad Town Harry's Shop (10 coins) · Shy Guy's Toybox",
+  "Whacka's Bump": 'Mt. Rugged (hit Whacka on the first enemy path — max 8 times before it disappears)',
+  'Yellow Berry':  'Flower Fields',
+};
+
+// Parse a comma-separated or " + "-separated ingredient string into individual items
+function parseIngredients(ingStr) {
+  // Split on " + " or ", " or " or "
+  return ingStr.split(/\s*[+,]\s*|\s+or\s+/)
+    .map(s => s.trim())
+    .filter(s => s && s !== 'Berry (any color)' && s !== 'Lemon OR Lime');
+}
+
 // [addr, bit, name, csvIngredients, effect, idOrder, chapter, chapterIngredients]
 const RECIPES = [
   // Single ingredient (CSV order)
@@ -342,6 +418,7 @@ function analyse(full) {
 // ── State ──────────────────────────────────────────────────────────────────
 let lastData = null;
 let currentMode = 'chapter';
+const checkedRecipes = new Set();
 let currentFilter = 'all';
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -361,6 +438,7 @@ function makeCard(r, done, displayNum, ingText) {
       <span class="recipe-num">${displayNum}.</span>
       <span class="recipe-mark">${done ? '✓' : '✗'}</span>
       <span class="recipe-name">${r[I_NAME]}</span>
+      <input type="checkbox" class="recipe-checkbox" data-recipe="${r[I_NAME]}" title="Add to shopping list">
     </div>
     <div class="recipe-effect">${r[I_EFFECT]}</div>
     <div class="recipe-ingredients">${ingText}</div>
@@ -370,6 +448,9 @@ function makeCard(r, done, displayNum, ingText) {
     ingDiv.setAttribute('data-tip', 'Also:\n' + alts.join('\n'));
     card.querySelector('.alt-count').setAttribute('data-tip', 'Also:\n' + alts.join('\n'));
   }
+  // Restore checkbox state after re-render
+  const cb = card.querySelector('.recipe-checkbox');
+  if (cb && checkedRecipes.has(r[I_NAME])) cb.checked = true;
   return card;
 }
 
@@ -383,6 +464,7 @@ function addDivider(grid, label, countText) {
 function renderRecipes({ results }, mode, filter) {
   const grid = document.getElementById('recipeGrid');
   grid.innerHTML = '';
+  grid.className = 'recipe-grid';
   document.getElementById('results').style.display = 'block';
   document.getElementById('legend').style.display = 'flex';
   
@@ -461,7 +543,8 @@ async function processFile(file) {
     status.style.display = 'none';
     renderProgress(lastData);
     document.getElementById('controlsRow').style.display = 'flex';
-    renderRecipes(lastData, currentMode, currentFilter);
+    if (currentMode === 'shopping') renderShopping();
+  else renderRecipes(lastData, currentMode, currentFilter);
   } catch(e) {
     status.className = 'error';
     status.textContent = '⚠ ' + e.message;
@@ -491,7 +574,58 @@ document.getElementById('controlsRow').addEventListener('click', e => {
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
   }
-  renderRecipes(lastData, currentMode, currentFilter);
+  if (currentMode === 'shopping') renderShopping();
+  else renderRecipes(lastData, currentMode, currentFilter);
+});
+
+// ── Shopping list ──────────────────────────────────────────────────────────
+function renderShopping() {
+  const grid = document.getElementById('recipeGrid');
+  grid.innerHTML = '';
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('legend').style.display = 'none';
+
+  if (checkedRecipes.size === 0) {
+    grid.className = '';
+    grid.innerHTML = '<div class="shopping-empty">No recipes checked. Check the box on any recipe card to add it to your list.</div>';
+    return;
+  }
+
+  const ingredientMap = {};
+  for (const recipeName of checkedRecipes) {
+    const r = RECIPES.find(r => r[I_NAME] === recipeName);
+    if (!r) continue;
+    const items = parseIngredients(r[I_CSV_ING]);
+    for (const item of items) {
+      if (!ingredientMap[item]) ingredientMap[item] = [];
+      ingredientMap[item].push(recipeName);
+    }
+  }
+
+  const sorted = Object.keys(ingredientMap).sort();
+  grid.className = 'shopping-grid';
+
+  for (const item of sorted) {
+    const loc = INGREDIENT_LOCATIONS[item] || 'Location unknown — check the RPGClassics item guide';
+    const recipes = ingredientMap[item];
+    const div = document.createElement('div');
+    div.className = 'shopping-item';
+    div.innerHTML = `
+      <div class="shopping-item-name">${item}${recipes.length > 1 ? ' (' + recipes.length + ')' : ''}</div>
+      <div class="shopping-item-location">${loc}</div>
+      <div class="shopping-item-recipes">Needed for: ${recipes.join(', ')}</div>`;
+    grid.appendChild(div);
+  }
+}
+
+// Checkbox delegation
+document.getElementById('recipeGrid').addEventListener('change', e => {
+  const cb = e.target.closest('.recipe-checkbox');
+  if (!cb) return;
+  const name = cb.getAttribute('data-recipe');
+  if (cb.checked) checkedRecipes.add(name);
+  else checkedRecipes.delete(name);
+  if (currentMode === 'shopping') renderShopping();
 });
 
 // ── Sample data ───────────────────────────────────────────────────────────
@@ -505,7 +639,8 @@ document.getElementById('sampleBtn').addEventListener('click', () => {
   };
   renderProgress(lastData);
   document.getElementById('controlsRow').style.display = 'flex';
-  renderRecipes(lastData, currentMode, currentFilter);
+  if (currentMode === 'shopping') renderShopping();
+  else renderRecipes(lastData, currentMode, currentFilter);
 });
 
 // ── Tooltip ────────────────────────────────────────────────────────────────
