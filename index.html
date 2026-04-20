@@ -120,6 +120,8 @@
     color: var(--muted);
     font-weight: 600;
     font-style: normal;
+    padding-left: 2.8rem;
+    cursor: help;
   }
   .recipe-ingredients[data-tip] { cursor: help; }
   .recipe-effect { font-size: 0.7rem; color: var(--muted); padding-left: 2.8rem; font-style: italic; line-height: 1.3; }
@@ -207,9 +209,9 @@
   <div class="controls" id="controlsRow" style="display:none">
     <span class="control-label">VIEW</span>
     <div class="control-group">
-      <button class="ctrl-btn active" data-mode="csv">Single / Two</button>
+      <button class="ctrl-btn active" data-mode="chapter">Chapter</button>
+      <button class="ctrl-btn" data-mode="csv">Single / Two</button>
       <button class="ctrl-btn" data-mode="id">ID Order</button>
-      <button class="ctrl-btn" data-mode="chapter">Chapter</button>
     </div>
     <div class="ctrl-sep"></div>
     <span class="control-label">FILTER</span>
@@ -339,7 +341,7 @@ function analyse(full) {
 
 // ── State ──────────────────────────────────────────────────────────────────
 let lastData = null;
-let currentMode = 'csv';
+let currentMode = 'chapter';
 let currentFilter = 'all';
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -353,18 +355,20 @@ function makeCard(r, done, displayNum, ingText) {
   const card = document.createElement('div');
   card.className = `recipe-card ${done ? 'done' : 'todo'}`;
   const alts = r[I_ALTS] || [];
-  const altLabel = alts.length ? ` <span class="alt-count">(+${alts.length} alt${alts.length>1?'s':''})</span>` : '';
+  const altLine = alts.length ? `<div class="alt-count">(+${alts.length} alt${alts.length>1?'s':''})</div>` : '';
   card.innerHTML = `
     <div class="recipe-top">
       <span class="recipe-num">${displayNum}.</span>
       <span class="recipe-mark">${done ? '✓' : '✗'}</span>
       <span class="recipe-name">${r[I_NAME]}</span>
     </div>
-    <div class="recipe-ingredients">${ingText}${altLabel}</div>
-    <div class="recipe-effect">${r[I_EFFECT]}</div>`;
+    <div class="recipe-effect">${r[I_EFFECT]}</div>
+    <div class="recipe-ingredients">${ingText}</div>
+    ${altLine}`;
   if (alts.length) {
     const ingDiv = card.querySelector('.recipe-ingredients');
     ingDiv.setAttribute('data-tip', 'Also:\n' + alts.join('\n'));
+    card.querySelector('.alt-count').setAttribute('data-tip', 'Also:\n' + alts.join('\n'));
   }
   return card;
 }
