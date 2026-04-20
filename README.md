@@ -1,5 +1,7 @@
 # Tayce T.'s Cookbook — Paper Mario Recipe Checker
 
+[Link](https://josephrooks.github.io/Recipedia/)
+
 A tool for tracking cooking progress toward the [Kitchen Nightmare](https://retroachievements.org/achievement/79593) RetroAchievements achievement in Paper Mario (N64).
 
 The correspondence between flag bit positions and specific recipe names was established by cross-referencing known-cooked save states against the item ID sequence, then verified by diffing save states before and after cooking individual recipes.
