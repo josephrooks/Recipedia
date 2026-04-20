@@ -4,7 +4,7 @@ A tool for tracking cooking progress toward the [Cooking Nightmare](https://retr
 
 The correspondence between flag bit positions and specific recipe names was established by cross-referencing known-cooked save states against the item ID sequence, then verified by diffing save states before and after cooking individual recipes.
 
-Not all 50 recipes required for the achievement have been explicitly confirmed yet, but the pattern seems to hold for the dozen or so I have tested.
+Not all 50 recipes required for the achievement have been explicitly confirmed yet, but the pattern seems to hold for the dozen or so I have tested one by one.
 
 ### Notes
 
