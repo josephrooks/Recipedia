@@ -2,6 +2,10 @@
 
 A tool for tracking cooking progress toward the [Cooking Nightmare](https://retroachievements.org/achievement/79593) RA achievement in Paper Mario (N64).
 
+The correspondence between flag bit positions and specific recipe names was established by cross-referencing known-cooked save states against the item ID sequence, then verified by diffing save states before and after cooking individual recipes.
+
+Not all 50 recipes required for the achievement have been explicitly confirmed yet, but the pattern seems to hold for the dozen or so I have tested.
+
 ### Notes
 
 - Compatible with the Cooking Nightmare achievement as of April 2026
@@ -38,8 +42,6 @@ You can also save the HTML file locally and it _should_ work fine.
 **Flag data** from [Paper Mario Code Notes](https://retroachievements.org/codenotes.php?g=10154) on RetroAchievements.
 
 **Item ID sequence** (the internal ordering used to map recipe flags to recipe names) from the [RPGClassics Paper Mario Hacking Guide](http://shrines.rpgclassics.com/n64/papermario/hacking.shtml).
-
-**Recipe mapping methodology** — the correspondence between flag bit positions and specific recipe names was established empirically by cross-referencing known-cooked save states against the item ID sequence, then verified by diffing save states before and after cooking individual recipes. All 50 recipe slots are empirically confirmed.
 
 **Chapter route** — the chapter mode ordering and optimized ingredient routes were posted by [Renia](https://retroachievements.org/achievement/79593/comments) on the Cooking Nightmare achievement wall.
 
